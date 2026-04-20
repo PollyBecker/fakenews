@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeeA — Demo de Voz</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    h1 { font-size: 2rem; letter-spacing: -1px; }
+    h1 span { color: #f5c518; }
+
+    #status {
+      font-size: 0.9rem;
+      color: #888;
+      height: 20px;
+    }
+
+    #mic-btn {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: none;
+      background: #f5c518;
+      font-size: 2.5rem;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.4);
+    }
+
+    #mic-btn:hover { transform: scale(1.05); }
+
+    #mic-btn.recording {
+      background: #e53935;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.6); }
+      70%  { box-shadow: 0 0 0 20px rgba(229, 57, 53, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .card label {
+      font-size: 0.75rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card p {
+      margin-top: 6px;
+      font-size: 1rem;
+      min-height: 24px;
+      color: #ddd;
+    }
+
+    #auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    #auth-form input {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    #auth-form button, #init-btn {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #f5c518;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    #voice-area { display: none; flex-direction: column; align-items: center; gap: 20px; }
+    #voice-area.visible { display: flex; }
+
+    #login-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  </style>
+</head>
+<body>
+
+  <h1>🐝 <span>BeeA</span> Voice Demo</h1>
+
+  <div id="login-area">
+    <p style="color:#888; font-size:0.9rem">Entre para começar</p>
+    <form id="auth-form">
+      <input id="username" type="text" placeholder="Usuário" value="admin" />
+      <input id="password" type="password" placeholder="Senha" value="admin123" />
+      <button type="submit">Entrar & Iniciar Sessão</button>
+    </form>
+    <div id="login-status" style="color:#888; font-size:0.85rem"></div>
+  </div>
+
+  <div id="voice-area">
+    <div id="status">Pronto. Pressione o microfone ou use o campo de texto.</div>
+
+    <button id="mic-btn" title="Segurar para falar">🎤</button>
+
+    <div style="display:flex; gap:8px; width:100%; max-width:520px;">
+      <input id="text-input" type="text" placeholder="Ou digite um comando..."
+        style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid #333;
+               background:#1a1a1a; color:#fff; font-size:1rem;" />
+      <button onclick="sendText()"
+        style="padding:10px 16px; border-radius:8px; border:none;
+               background:#f5c518; color:#000; font-weight:bold; cursor:pointer;">
+        Enviar
+      </button>
+    </div>
+
+    <div class="card">
+      <label>Você disse</label>
+      <p id="transcript">—</p>
+    </div>
+
+    <div class="card">
+      <label>BeeA respondeu</label>
+      <p id="result">—</p>
+    </div>
+  </div>
+
+<script>
+  let token = null;
+  let sessionId = null;
+  let mediaRecorder = null;
+  let chunks = [];
+  let isRecording = false;
+
+  document.getElementById('auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const loginStatus = document.getElementById('login-status');
+    loginStatus.textContent = 'Entrando...';
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+      const loginRes = await fetch('/api/auth/login/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password}),
+      });
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(loginData.non_field_errors?.[0] || 'Erro no login');
+      token = loginData.token;
+
+      const sessionRes = await fetch('/api/sessions/start/', {
+        method: 'POST',
+        headers: {'Authorization': `Token ${token}`},
+      });
+      const sessionData = await sessionRes.json();
+      sessionId = sessionData.id;
+
+      loginStatus.textContent = `✓ Sessão #${sessionId} ativa`;
+      document.getElementById('login-area').style.display = 'none';
+      document.getElementById('voice-area').classList.add('visible');
+
+    } catch (err) {
+      loginStatus.textContent = `Erro: ${err.message}`;
+    }
+  });
+
+  const micBtn = document.getElementById('mic-btn');
+
+  micBtn.addEventListener('mousedown', startRecording);
+  micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
+  micBtn.addEventListener('mouseup', stopRecording);
+  micBtn.addEventListener('mouseleave', () => { if (isRecording) stopRecording(); });
+  micBtn.addEventListener('touchend', stopRecording);
+
+  async function startRecording() {
+    if (isRecording || !sessionId) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      chunks = [];
+      mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/webm'});
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      mediaRecorder.onstop = sendAudio;
+      mediaRecorder.start();
+      isRecording = true;
+      micBtn.classList.add('recording');
+      micBtn.textContent = '🔴';
+      setStatus('Gravando... solte para enviar');
+    } catch (err) {
+      setStatus('Erro ao acessar microfone: ' + err.message);
+    }
+  }
+
+  function stopRecording() {
+    if (!isRecording || !mediaRecorder) return;
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    micBtn.textContent = '🎤';
+    setStatus('Processando...');
+  }
+
+  async function sendAudio() {
+    const blob = new Blob(chunks, {type: 'audio/webm'});
+    const formData = new FormData();
+    formData.append('audio', blob, 'recording.webm');
+
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/voice/`, {
+        method: 'POST',
+        headers: {'Authorization': `Token ${token}`},
+        body: formData,
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        setStatus(`Erro do servidor (${res.status}). Veja o console.`);
+        console.error('Resposta não-JSON do servidor:', text);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStatus(`Erro: ${data.error || 'Falha desconhecida'}`);
+        return;
+      }
+
+      document.getElementById('transcript').textContent = data.transcript || '(sem transcrição)';
+
+      const action = data.result?.action || {};
+      document.getElementById('result').textContent =
+        action.summary || action.description || JSON.stringify(action);
+
+      if (data.audio_response) {
+        playBase64Wav(data.audio_response);
+      }
+
+      setStatus('Pronto. Pressione o microfone para falar.');
+
+    } catch (err) {
+      setStatus('Erro de rede: ' + err.message);
+      console.error(err);
+    }
+  }
+
+  async function sendText() {
+    const input = document.getElementById('text-input');
+    const command = input.value.trim();
+    if (!command || !sessionId) return;
+
+    setStatus('Processando...');
+    input.value = '';
+
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/command/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({command}),
+      });
+
+      const data = await res.json();
+      document.getElementById('transcript').textContent = command;
+      const action = data.result?.action || {};
+      document.getElementById('result').textContent =
+        action.summary || action.description || JSON.stringify(action);
+      setStatus('Pronto.');
+    } catch (err) {
+      setStatus('Erro: ' + err.message);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('text-input');
+    if (input) input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendText();
+    });
+  });
+
+  function setStatus(msg) {
+    document.getElementById('status').textContent = msg;
+  }
+
+  function playBase64Wav(b64) {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], {type: 'audio/wav'});
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.play();
+  }
+</script>
+</body>
+</html>
