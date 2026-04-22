@@ -3,326 +3,460 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BeeA — Demo de Voz</title>
+  <title>Verificador de Fake News para Idosos</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
 
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: #e9ebf0;
       min-height: 100vh;
-      gap: 24px;
-      padding: 24px;
+      color: #222;
     }
 
-    h1 { font-size: 2rem; letter-spacing: -1px; }
-    h1 span { color: #f5c518; }
-
-    #status {
-      font-size: 0.9rem;
-      color: #888;
-      height: 20px;
+    header {
+      background: #161b2e;
+      color: #fff;
+      padding: 22px 40px 18px;
+      position: relative;
+    }
+    header h1 {
+      color: #f5c518;
+      text-align: center;
+      font-size: 1.7rem;
+      font-weight: 700;
+    }
+    header .subtitle {
+      position: absolute;
+      left: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.78rem;
+      color: #cfd3dd;
+      letter-spacing: 0.3px;
     }
 
-    #mic-btn {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      border: none;
-      background: #f5c518;
-      font-size: 2.5rem;
-      cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.2s;
-      box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.4);
-    }
-
-    #mic-btn:hover { transform: scale(1.05); }
-
-    #mic-btn.recording {
-      background: #e53935;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.6); }
-      70%  { box-shadow: 0 0 0 20px rgba(229, 57, 53, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    main {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
     }
 
     .card {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 16px 20px;
-      width: 100%;
-      max-width: 520px;
+      background: #fff;
+      border: 1px solid #d8dde6;
+      border-radius: 14px;
+      padding: 28px 32px;
     }
 
-    .card label {
-      font-size: 0.75rem;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .card p {
-      margin-top: 6px;
-      font-size: 1rem;
-      min-height: 24px;
-      color: #ddd;
-    }
-
-    #auth-form {
+    .tabs {
       display: flex;
-      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 10px;
-      width: 100%;
-      max-width: 320px;
-    }
-
-    #auth-form input {
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid #333;
-      background: #1a1a1a;
-      color: #fff;
-      font-size: 1rem;
-    }
-
-    #auth-form button, #init-btn {
-      padding: 10px 14px;
-      border-radius: 8px;
+      width: 220px;
+      height: 54px;
+      border-radius: 10px;
       border: none;
-      background: #f5c518;
-      color: #000;
-      font-weight: bold;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      background: #161b2e;
+      color: #fff;
+    }
+    .tab.inactive {
+      background: #e7e9ef;
+      color: #4a4f5c;
+    }
+    .tab.recording {
+      background: #e53935;
+      color: #fff;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.6); }
+      70%  { box-shadow: 0 0 0 14px rgba(229, 57, 53, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+    .tab svg { width: 22px; height: 22px; }
+
+    .mic-hint {
+      font-size: 0.85rem;
+      color: #7a7f8c;
+      margin: -10px 0 16px 4px;
+      min-height: 18px;
     }
 
-    #voice-area { display: none; flex-direction: column; align-items: center; gap: 20px; }
-    #voice-area.visible { display: flex; }
+    .label {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 8px;
+    }
 
-    #login-area { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .noticia-box {
+      background: #f0f1f6;
+      border: 1px solid #dcdfe8;
+      border-radius: 8px;
+      padding: 16px 18px;
+      min-height: 70px;
+      margin-bottom: 22px;
+      font-size: 1rem;
+      color: #2a2d36;
+      line-height: 1.45;
+      width: 100%;
+      resize: vertical;
+      font-family: inherit;
+    }
+    .noticia-box:focus { outline: 2px solid #f5c518; border-color: #f5c518; }
+
+    .actions-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .btn-primary {
+      background: #161b2e;
+      color: #fff;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: #222a46; }
+    .btn-primary:disabled { opacity: 0.5; cursor: wait; }
+
+    .verdict {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      border: 2px solid;
+      border-radius: 12px;
+      padding: 22px 28px;
+      margin-bottom: 22px;
+    }
+    .verdict.fake {
+      background: #fdebec;
+      border-color: #d63c3c;
+    }
+    .verdict.true {
+      background: #e6f3e4;
+      border-color: #1f6b2e;
+    }
+    .verdict.hidden { display: none; }
+
+    .verdict-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .verdict.fake .verdict-icon { background: #d63c3c; }
+    .verdict.true .verdict-icon { background: #1f6b2e; }
+    .verdict-icon svg { width: 42px; height: 42px; stroke: #fff; stroke-width: 3; fill: none; }
+
+    .verdict-text h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .verdict-text p {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .verdict.fake .verdict-text h2,
+    .verdict.fake .verdict-text p { color: #b02727; }
+    .verdict.true .verdict-text h2,
+    .verdict.true .verdict-text p { color: #1f6b2e; }
+
+    .explanation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .speak-btn {
+      background: #f5c518;
+      color: #161b2e;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .speak-btn svg { width: 16px; height: 16px; fill: #161b2e; }
+
+    .explanation-box {
+      background: #fffcea;
+      border: 2px solid #f5c518;
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-size: 1rem;
+      color: #2a2d36;
+      line-height: 1.5;
+      min-height: 80px;
+    }
+
+    footer {
+      max-width: 1100px;
+      margin: 16px auto 40px;
+      padding: 0 32px;
+      font-size: 0.85rem;
+      color: #7a7f8c;
+    }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-  <h1>🐝 <span>BeeA</span> Voice Demo</h1>
+  <header>
+    <div class="subtitle">UNINTER &nbsp;&bull;&nbsp; Atividade Extensionista II &nbsp;&bull;&nbsp; Pollyana Becker</div>
+    <h1>Verificador de Fake News para Idosos</h1>
+  </header>
 
-  <div id="login-area">
-    <p style="color:#888; font-size:0.9rem">Entre para começar</p>
-    <form id="auth-form">
-      <input id="username" type="text" placeholder="Usuário" value="admin" />
-      <input id="password" type="password" placeholder="Senha" value="admin123" />
-      <button type="submit">Entrar & Iniciar Sessão</button>
-    </form>
-    <div id="login-status" style="color:#888; font-size:0.85rem"></div>
-  </div>
-
-  <div id="voice-area">
-    <div id="status">Pronto. Pressione o microfone ou use o campo de texto.</div>
-
-    <button id="mic-btn" title="Segurar para falar">🎤</button>
-
-    <div style="display:flex; gap:8px; width:100%; max-width:520px;">
-      <input id="text-input" type="text" placeholder="Ou digite um comando..."
-        style="flex:1; padding:10px 14px; border-radius:8px; border:1px solid #333;
-               background:#1a1a1a; color:#fff; font-size:1rem;" />
-      <button onclick="sendText()"
-        style="padding:10px 16px; border-radius:8px; border:none;
-               background:#f5c518; color:#000; font-weight:bold; cursor:pointer;">
-        Enviar
-      </button>
-    </div>
-
+  <main>
     <div class="card">
-      <label>Você disse</label>
-      <p id="transcript">—</p>
-    </div>
+      <div class="tabs">
+        <button class="tab active" id="tab-digitar" onclick="selectTab('digitar')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="2" y="6" width="20" height="12" rx="2"/>
+            <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/>
+          </svg>
+          Digitar
+        </button>
+        <button class="tab inactive" id="tab-falar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="9" y="3" width="6" height="12" rx="3"/>
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+          </svg>
+          <span id="falar-label">Falar</span>
+        </button>
+      </div>
+      <div class="mic-hint" id="mic-hint">Segure o botao "Falar" enquanto fala. Solte e depois clique em "Verificar noticia".</div>
 
-    <div class="card">
-      <label>BeeA respondeu</label>
-      <p id="result">—</p>
+      <div class="label">Noticia enviada:</div>
+      <textarea class="noticia-box" id="noticia" rows="2"
+        placeholder="Cole aqui a noticia que voce quer verificar...">Nova vacina contra gripe causa alteracoes no DNA humano, afirma estudo secreto divulgado na internet.</textarea>
+
+      <div class="actions-row">
+        <button class="btn-primary" id="check-btn" onclick="checkNews()">Verificar noticia</button>
+      </div>
+
+      <div class="verdict fake" id="verdict">
+        <div class="verdict-icon">
+          <svg id="verdict-svg" viewBox="0 0 24 24">
+            <path id="verdict-path" d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="verdict-text">
+          <h2 id="verdict-title">FAKE NEWS</h2>
+          <p id="verdict-sub">Esta noticia e FALSA. Nao compartilhe.</p>
+        </div>
+      </div>
+
+      <div class="explanation-header">
+        <div class="label">Explicacao (lendo em voz alta + texto na tela):</div>
+        <button class="speak-btn" id="speak-btn" onclick="speakExplanation()">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 10v4h4l5 4V6L7 10H3zM14 8.5c1.5 1 1.5 6.5 0 7.5M16.5 6c3 2 3 10 0 12"
+              stroke="#161b2e" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span id="speak-label">Ouvir resposta</span>
+        </button>
+      </div>
+      <div class="explanation-box" id="explanation">
+        Informacao falsa. Nenhuma vacina aprovada altera o DNA humano. O Ministerio da Saude e agencias de checagem (Aos Fatos, Lupa) ja desmentiram conteudos parecidos. Antes de repassar, confira sempre em sites oficiais.
+      </div>
     </div>
-  </div>
+  </main>
+
+  <footer>
+    Python &nbsp;&bull;&nbsp; Django &nbsp;&bull;&nbsp; Google Gemini AI &nbsp;&bull;&nbsp; Web Speech API (STT + TTS)
+  </footer>
 
 <script>
-  let token = null;
-  let sessionId = null;
-  let mediaRecorder = null;
-  let chunks = [];
+  const noticiaEl = document.getElementById('noticia');
+  const verdictEl = document.getElementById('verdict');
+  const verdictTitle = document.getElementById('verdict-title');
+  const verdictSub = document.getElementById('verdict-sub');
+  const verdictPath = document.getElementById('verdict-path');
+  const explanationEl = document.getElementById('explanation');
+  const checkBtn = document.getElementById('check-btn');
+  const speakLabel = document.getElementById('speak-label');
+
+  function selectTab(tab) {
+    const t1 = document.getElementById('tab-digitar');
+    const t2 = document.getElementById('tab-falar');
+    if (tab === 'digitar') {
+      t1.classList.add('active'); t1.classList.remove('inactive');
+      t2.classList.add('inactive'); t2.classList.remove('active');
+    } else {
+      t2.classList.add('active'); t2.classList.remove('inactive');
+      t1.classList.add('inactive'); t1.classList.remove('active');
+    }
+  }
+
+  // Push-to-talk: SO ouve enquanto o botao "Falar" esta pressionado
+  const falarBtn = document.getElementById('tab-falar');
+  const falarLabel = document.getElementById('falar-label');
+  const micHint = document.getElementById('mic-hint');
+  let recognizer = null;
   let isRecording = false;
+  let finalTranscript = '';
+  let isChecking = false;
+  let lastCheckAt = 0;
 
-  document.getElementById('auth-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const loginStatus = document.getElementById('login-status');
-    loginStatus.textContent = 'Entrando...';
+  function stopRecognizerHard() {
+    if (!recognizer) return;
+    try { recognizer.onresult = null; } catch (_) {}
+    try { recognizer.onend = null; } catch (_) {}
+    try { recognizer.onerror = null; } catch (_) {}
+    try { recognizer.abort(); } catch (_) {}
+    try { recognizer.stop(); } catch (_) {}
+    recognizer = null;
+  }
 
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+  function startRecording(e) {
+    if (e) e.preventDefault();
+    selectTab('falar');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Reconhecimento de voz nao suportado. Use o Chrome.'); return; }
+    if (isRecording) return;
+
+    stopRecognizerHard();
+    finalTranscript = '';
+    noticiaEl.value = '';
+
+    recognizer = new SR();
+    recognizer.lang = 'pt-BR';
+    recognizer.continuous = false;
+    recognizer.interimResults = true;
+    recognizer.onresult = (evt) => {
+      if (!isRecording) return;
+      let interim = '';
+      for (let i = evt.resultIndex; i < evt.results.length; i++) {
+        const t = evt.results[i][0].transcript;
+        if (evt.results[i].isFinal) finalTranscript += t + ' ';
+        else interim += t;
+      }
+      noticiaEl.value = (finalTranscript + interim).trim();
+    };
+    recognizer.onerror = (evt) => {
+      micHint.textContent = 'Erro do microfone: ' + evt.error;
+    };
+    recognizer.onend = () => {};
+
+    try { recognizer.start(); }
+    catch (err) { micHint.textContent = 'Erro: ' + err.message; return; }
+
+    isRecording = true;
+    falarBtn.classList.add('recording');
+    falarBtn.classList.remove('inactive', 'active');
+    falarLabel.textContent = 'Gravando...';
+    micHint.textContent = 'Fale agora. Solte o botao quando terminar.';
+  }
+
+  function stopRecording(e) {
+    if (e) e.preventDefault();
+    if (!isRecording) return;
+    isRecording = false;
+    stopRecognizerHard();
+    falarBtn.classList.remove('recording');
+    falarBtn.classList.add('inactive');
+    falarLabel.textContent = 'Falar';
+    micHint.textContent = 'Pronto. Confira o texto e clique em "Verificar noticia".';
+  }
+
+  falarBtn.addEventListener('mousedown', startRecording);
+  falarBtn.addEventListener('mouseup', stopRecording);
+  falarBtn.addEventListener('mouseleave', (e) => { if (isRecording) stopRecording(e); });
+  falarBtn.addEventListener('touchstart', startRecording, {passive: false});
+  falarBtn.addEventListener('touchend', stopRecording, {passive: false});
+  falarBtn.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('blur', () => { if (isRecording) stopRecording(); });
+
+  document.getElementById('tab-digitar').addEventListener('click', () => {
+    if (isRecording) stopRecording();
+    selectTab('digitar');
+  });
+
+  function setVerdict(kind) {
+    verdictEl.classList.remove('fake', 'true', 'hidden');
+    verdictEl.classList.add(kind);
+    if (kind === 'fake') {
+      verdictTitle.textContent = 'FAKE NEWS';
+      verdictSub.textContent = 'Esta noticia e FALSA. Nao compartilhe.';
+      verdictPath.setAttribute('d', 'M6 6l12 12M18 6L6 18');
+    } else {
+      verdictTitle.textContent = 'NOTICIA VERDADEIRA';
+      verdictSub.textContent = 'Esta noticia foi verificada em fontes oficiais.';
+      verdictPath.setAttribute('d', 'M5 12l5 5 9-10');
+    }
+  }
+
+  async function checkNews() {
+    if (isChecking) return;
+    const noticia = noticiaEl.value.trim();
+    if (!noticia) { alert('Digite ou cole uma noticia primeiro.'); return; }
+    isChecking = true;
+    lastCheckAt = Date.now();
+    checkBtn.disabled = true;
+    checkBtn.textContent = 'Verificando...';
+    explanationEl.textContent = 'Consultando o verificador...';
+    verdictEl.classList.add('hidden');
 
     try {
-      const loginRes = await fetch('/api/auth/login/', {
+      const res = await fetch('/api/check-news/', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({username, password}),
+        body: JSON.stringify({noticia}),
       });
-      const loginData = await loginRes.json();
-      if (!loginRes.ok) throw new Error(loginData.non_field_errors?.[0] || 'Erro no login');
-      token = loginData.token;
-
-      const sessionRes = await fetch('/api/sessions/start/', {
-        method: 'POST',
-        headers: {'Authorization': `Token ${token}`},
-      });
-      const sessionData = await sessionRes.json();
-      sessionId = sessionData.id;
-
-      loginStatus.textContent = `✓ Sessão #${sessionId} ativa`;
-      document.getElementById('login-area').style.display = 'none';
-      document.getElementById('voice-area').classList.add('visible');
-
-    } catch (err) {
-      loginStatus.textContent = `Erro: ${err.message}`;
-    }
-  });
-
-  const micBtn = document.getElementById('mic-btn');
-
-  micBtn.addEventListener('mousedown', startRecording);
-  micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecording(); });
-  micBtn.addEventListener('mouseup', stopRecording);
-  micBtn.addEventListener('mouseleave', () => { if (isRecording) stopRecording(); });
-  micBtn.addEventListener('touchend', stopRecording);
-
-  async function startRecording() {
-    if (isRecording || !sessionId) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-      chunks = [];
-      mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/webm'});
-      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-      mediaRecorder.onstop = sendAudio;
-      mediaRecorder.start();
-      isRecording = true;
-      micBtn.classList.add('recording');
-      micBtn.textContent = '🔴';
-      setStatus('Gravando... solte para enviar');
-    } catch (err) {
-      setStatus('Erro ao acessar microfone: ' + err.message);
-    }
-  }
-
-  function stopRecording() {
-    if (!isRecording || !mediaRecorder) return;
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(t => t.stop());
-    isRecording = false;
-    micBtn.classList.remove('recording');
-    micBtn.textContent = '🎤';
-    setStatus('Processando...');
-  }
-
-  async function sendAudio() {
-    const blob = new Blob(chunks, {type: 'audio/webm'});
-    const formData = new FormData();
-    formData.append('audio', blob, 'recording.webm');
-
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/voice/`, {
-        method: 'POST',
-        headers: {'Authorization': `Token ${token}`},
-        body: formData,
-      });
-
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await res.text();
-        setStatus(`Erro do servidor (${res.status}). Veja o console.`);
-        console.error('Resposta não-JSON do servidor:', text);
-        return;
-      }
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setStatus(`Erro: ${data.error || 'Falha desconhecida'}`);
-        return;
+      const exp = (data.explanation || '').toLowerCase();
+      if (exp.includes('429') || exp.includes('resource_exhausted') || exp.includes('too many requests')) {
+        explanationEl.textContent = 'Muitas consultas em sequencia. Aguarde cerca de 30 segundos e tente de novo.';
+        verdictEl.classList.add('hidden');
+      } else {
+        setVerdict(data.verdict === 'true' ? 'true' : 'fake');
+        explanationEl.textContent = data.explanation;
+        speakExplanation();
       }
-
-      document.getElementById('transcript').textContent = data.transcript || '(sem transcrição)';
-
-      const action = data.result?.action || {};
-      document.getElementById('result').textContent =
-        action.summary || action.description || JSON.stringify(action);
-
-      if (data.audio_response) {
-        playBase64Wav(data.audio_response);
-      }
-
-      setStatus('Pronto. Pressione o microfone para falar.');
-
     } catch (err) {
-      setStatus('Erro de rede: ' + err.message);
-      console.error(err);
+      explanationEl.textContent = 'Erro ao consultar: ' + err.message;
+    } finally {
+      isChecking = false;
+      checkBtn.disabled = false;
+      checkBtn.textContent = 'Verificar noticia';
     }
   }
 
-  async function sendText() {
-    const input = document.getElementById('text-input');
-    const command = input.value.trim();
-    if (!command || !sessionId) return;
-
-    setStatus('Processando...');
-    input.value = '';
-
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/command/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({command}),
-      });
-
-      const data = await res.json();
-      document.getElementById('transcript').textContent = command;
-      const action = data.result?.action || {};
-      document.getElementById('result').textContent =
-        action.summary || action.description || JSON.stringify(action);
-      setStatus('Pronto.');
-    } catch (err) {
-      setStatus('Erro: ' + err.message);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('text-input');
-    if (input) input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendText();
-    });
-  });
-
-  function setStatus(msg) {
-    document.getElementById('status').textContent = msg;
-  }
-
-  function playBase64Wav(b64) {
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], {type: 'audio/wav'});
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
+  function speakExplanation() {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(explanationEl.textContent);
+    utter.lang = 'pt-BR';
+    utter.rate = 0.95;
+    speakLabel.textContent = 'Ouvindo resposta...';
+    utter.onend = () => { speakLabel.textContent = 'Ouvir resposta'; };
+    window.speechSynthesis.speak(utter);
   }
 </script>
 </body>
